@@ -1,6 +1,4 @@
 // Google Identity Services (GIS) integration for real Google login.
-// Users sign in with Google; their email determines their role via allowlists.
-// Password fallback is kept for admin/instructor who prefer password auth.
 
 export const GOOGLE_CLIENT_ID = '983338411144-2rdlrfl467pncud86e4fddm1ql5m03gr.apps.googleusercontent.com';
 
@@ -47,8 +45,8 @@ function decodeIdToken(idToken) {
   } catch { return null; }
 }
 
-// Wait for Google GIS script to be ready (it loads async).
-function waitForGoogle(maxWaitMs = 5000) {
+function waitForGoogle(maxWaitMs) {
+  const max = maxWaitMs || 5000;
   return new Promise((resolve) => {
     if (window.google && window.google.accounts && window.google.accounts.id) {
       resolve(true); return;
@@ -57,21 +55,21 @@ function waitForGoogle(maxWaitMs = 5000) {
     const interval = setInterval(() => {
       if (window.google && window.google.accounts && window.google.accounts.id) {
         clearInterval(interval); resolve(true);
-      } else if (Date.now() - start > maxWaitMs) {
+      } else if (Date.now() - start > max) {
         clearInterval(interval); resolve(false);
       }
     }, 100);
   });
 }
 
-// Initialize Google Identity Services and render the button into elementId.
-// Retries until GIS script is loaded. Calls onError if anything fails.
-export async function initGoogleButton(elementId, onLogin, onError) {
+// Initialize GIS and render the button into a DOM element (not an ID).
+// The element must be created and owned by the caller (not React) to avoid reconciliation conflicts.
+export async function initGoogleButtonInto(element, onLogin, onError) {
   if (GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
+    onError && onError('Google login not configured.');
     return false;
   }
-  const el = document.getElementById(elementId);
-  if (!el) { onError && onError('Login element not found.'); return false; }
+  if (!element) { onError && onError('No container for Google button.'); return false; }
 
   const ready = await waitForGoogle();
   if (!ready) {
@@ -98,17 +96,14 @@ export async function initGoogleButton(elementId, onLogin, onError) {
         onLogin({ name, email, role });
       },
       auto_select: false,
-      cancel_on_tap_outside: true,
+      cancel_on_tap_outside: false,
     });
-    // Clear any previous button content, then render.
-    el.innerHTML = '';
-    window.google.accounts.id.renderButton(el, {
+    window.google.accounts.id.renderButton(element, {
       theme: 'outline', size: 'large', width: 320, text: 'continue_with', shape: 'pill'
     });
-    // If the button didn't render (origin not authorized), show a helpful error.
     setTimeout(() => {
-      if (el.children.length === 0) {
-        onError && onError('Google sign-in blocked. Add this site\'s URL to Authorized JavaScript origins in Google Cloud Console. See SETUP-GOOGLE-AUTH.md.');
+      if (element.children.length === 0) {
+        onError && onError('Google sign-in blocked. Add the site URL to Authorized JavaScript origins in Google Cloud Console.');
       }
     }, 1500);
     return true;

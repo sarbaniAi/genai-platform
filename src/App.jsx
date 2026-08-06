@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { BookOpen, Users, Settings, LogOut, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { DEFAULT_MODULES, DEFAULT_META } from './data/modules';
 import { loadModules, saveModules, loadMeta, saveMeta } from './lib/storage';
 import {
   authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession,
-  initGoogleButton,
 } from './lib/adminAuth';
+import GoogleSignInButton from './components/GoogleSignInButton';
 import StudentView from './views/StudentView';
 import InstructorView from './views/InstructorView';
 import AdminView from './views/AdminView';
@@ -17,22 +17,10 @@ function LoginView({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [googleConfigured, setGoogleConfigured] = useState(null); // null = loading, true/false = result
-  const [googleError, setGoogleError] = useState('');
 
-  const tryInitGoogle = () => {
-    setGoogleConfigured(null);
-    setGoogleError('');
-    initGoogleButton(
-      'google-signin-btn',
-      (session) => onLogin(session),
-      (msg) => { setGoogleError(msg); setGoogleConfigured(false); }
-    ).then((ok) => { if (ok) setGoogleConfigured(true); });
-  };
-
-  useEffect(() => {
-    tryInitGoogle();
-  }, [onLogin]);
+  // Stable callbacks so GoogleSignInButton (memoized) never re-renders.
+  const handleGoogleLogin = useCallback((session) => onLogin(session), [onLogin]);
+  const handleGoogleError = useCallback((msg) => setError(msg), []);
 
   const handlePasswordSubmit = async () => {
     if (!name.trim()) { setError('Please enter your name.'); return; }
@@ -66,22 +54,7 @@ function LoginView({ onLogin }) {
 
         {!showPasswordLogin && (
           <div className="space-y-4">
-            <div id="google-signin-btn" className="flex justify-center min-h-[44px]">
-              {googleConfigured === null && (
-                <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
-                  <div className="w-4 h-4 border-2 border-slate-300 border-t-violet-600 rounded-full animate-spin" />
-                  Loading Google sign-in…
-                </div>
-              )}
-              {googleConfigured === false && (
-                <div className="text-center p-3 border border-dashed border-amber-300 rounded-lg bg-amber-50">
-                  <p className="text-sm text-amber-800 mb-1">{googleError || 'Google sign-in could not load.'}</p>
-                  <button onClick={tryInitGoogle} className="text-xs text-amber-700 hover:text-amber-900 underline">
-                    Retry
-                  </button>
-                </div>
-              )}
-            </div>
+            <GoogleSignInButton onLogin={handleGoogleLogin} onError={handleGoogleError} />
             <div className="text-center">
               <button onClick={() => setShowPasswordLogin(true)} className="text-xs text-slate-500 hover:text-slate-700 underline">
                 Instructor / Admin? Use password instead
@@ -131,29 +104,20 @@ function LoginView({ onLogin }) {
 
 export default function App() {
   const [session, setSession] = useState(() => hasSession() ? { role: getCurrentRole(), name: getCurrentName() } : null);
-  const [adminSubView, setAdminSubView] = useState('admin'); // 'admin' | 'instructor'
+  const [adminSubView, setAdminSubView] = useState('admin');
   const [modules, setModules] = useState(() => loadModules() || DEFAULT_MODULES);
   const [meta, setMeta] = useState(() => loadMeta(DEFAULT_META));
 
   useEffect(() => { saveModules(modules); }, [modules]);
   useEffect(() => { saveMeta(meta); }, [meta]);
 
-  const handleLogin = (newSession) => { setSession(newSession); setAdminSubView('admin'); };
-  const handleLogout = () => { clearSession(); setSession(null); setAdminSubView('admin'); };
+  const handleLogin = useCallback((newSession) => { setSession(newSession); setAdminSubView('admin'); }, []);
+  const handleLogout = useCallback(() => { clearSession(); setSession(null); setAdminSubView('admin'); }, []);
 
   if (!session) return <LoginView onLogin={handleLogin} />;
 
-  // Admin can switch to view the instructor dashboard.
   if (session.role === 'admin' && adminSubView === 'instructor') {
-    return (
-      <div>
-        <InstructorView
-          modules={modules}
-          onLogout={handleLogout}
-          onBackToAdmin={() => setAdminSubView('admin')}
-        />
-      </div>
-    );
+    return <InstructorView modules={modules} onLogout={handleLogout} onBackToAdmin={() => setAdminSubView('admin')} />;
   }
 
   return (
