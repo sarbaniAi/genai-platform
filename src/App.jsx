@@ -17,15 +17,21 @@ function LoginView({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const [googleConfigured, setGoogleConfigured] = useState(null); // null = loading, true/false = result
+  const [googleError, setGoogleError] = useState('');
 
-  useEffect(() => {
-    const ok = initGoogleButton(
+  const tryInitGoogle = () => {
+    setGoogleConfigured(null);
+    setGoogleError('');
+    initGoogleButton(
       'google-signin-btn',
       (session) => onLogin(session),
-      (msg) => setError(msg)
-    );
-    setGoogleConfigured(ok);
+      (msg) => { setGoogleError(msg); setGoogleConfigured(false); }
+    ).then((ok) => { if (ok) setGoogleConfigured(true); });
+  };
+
+  useEffect(() => {
+    tryInitGoogle();
   }, [onLogin]);
 
   const handlePasswordSubmit = async () => {
@@ -60,11 +66,19 @@ function LoginView({ onLogin }) {
 
         {!showPasswordLogin && (
           <div className="space-y-4">
-            <div id="google-signin-btn" className="flex justify-center min-h-[40px]">
-              {!googleConfigured && (
-                <div className="text-center p-4 border border-dashed border-slate-300 rounded-lg">
-                  <p className="text-sm text-slate-500 mb-1">Google login not configured yet.</p>
-                  <p className="text-xs text-slate-400">See SETUP-GOOGLE-AUTH.md to enable.</p>
+            <div id="google-signin-btn" className="flex justify-center min-h-[44px]">
+              {googleConfigured === null && (
+                <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-violet-600 rounded-full animate-spin" />
+                  Loading Google sign-in…
+                </div>
+              )}
+              {googleConfigured === false && (
+                <div className="text-center p-3 border border-dashed border-amber-300 rounded-lg bg-amber-50">
+                  <p className="text-sm text-amber-800 mb-1">{googleError || 'Google sign-in could not load.'}</p>
+                  <button onClick={tryInitGoogle} className="text-xs text-amber-700 hover:text-amber-900 underline">
+                    Retry
+                  </button>
                 </div>
               )}
             </div>
