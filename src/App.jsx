@@ -1,22 +1,42 @@
-import { useState, useEffect } from 'react';
-import { BookOpen, Users, Settings, LogOut, Lock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { BookOpen, Users, Settings, LogOut, Lock, AlertCircle } from 'lucide-react';
 import { DEFAULT_MODULES, DEFAULT_META } from './data/modules';
 import { loadModules, saveModules, loadMeta, saveMeta } from './lib/storage';
-import { authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession } from './lib/adminAuth';
+import {
+  authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession,
+  initGoogleButton, GOOGLE_CLIENT_ID,
+} from './lib/adminAuth';
 import StudentView from './views/StudentView';
 import InstructorView from './views/InstructorView';
 import AdminView from './views/AdminView';
 
 function LoginView({ onLogin }) {
   const meta = loadMeta(DEFAULT_META);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const googleBtnRef = useRef(null);
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    // Render the Google button once on mount.
+    const ok = initGoogleButton(
+      'google-signin-btn',
+      (session) => onLogin(session),
+      (msg) => setError(msg)
+    );
+    setGoogleConfigured(ok);
+  }, [onLogin]);
+
+  const handlePasswordSubmit = async () => {
     if (!name.trim()) {
       setError('Please enter your name.');
+      return;
+    }
+    if (!password) {
+      setError('Password is required for instructor/admin login.');
       return;
     }
     setBusy(true);
@@ -24,10 +44,10 @@ function LoginView({ onLogin }) {
     const result = await authenticate(name, password);
     setBusy(false);
     if (result) {
-      startSession(result.name, result.role);
+      startSession(result.name, null, result.role);
       onLogin(result);
     } else {
-      setError('Authentication failed.');
+      setError('Incorrect password. If you are a student, use Sign in with Google.');
     }
   };
 
@@ -40,43 +60,82 @@ function LoginView({ onLogin }) {
         </h1>
         <p className="text-slate-600 mb-6">{meta.thesis}</p>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Your Name</label>
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') document.getElementById('pwd-input').focus(); }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <AlertCircle size={16} className="text-red-600 mt-0.5 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Password <span className="text-slate-400">(students leave blank)</span></label>
-            <input
-              id="pwd-input"
-              type="password"
-              placeholder="Instructors & admins enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
+        )}
+
+        {/* Primary: Sign in with Google */}
+        {!showPasswordLogin && (
+          <div className="space-y-4">
+            <div id="google-signin-btn" className="flex justify-center min-h-[40px]">
+              {!googleConfigured && (
+                <div className="text-center p-4 border border-dashed border-slate-300 rounded-lg">
+                  <p className="text-sm text-slate-500 mb-1">Google login not configured yet.</p>
+                  <p className="text-xs text-slate-400">See SETUP-GOOGLE-AUTH.md to enable.</p>
+                </div>
+              )}
+            </div>
+            <div className="text-center">
+              <button
+                onClick={() => setShowPasswordLogin(true)}
+                className="text-xs text-slate-500 hover:text-slate-700 underline"
+              >
+                Instructor / Admin? Use password instead
+              </button>
+            </div>
           </div>
-          {error && <p className="text-red-600 text-xs">{error}</p>}
-          <button
-            onClick={handleSubmit}
-            disabled={busy}
-            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2"
-          >
-            {busy ? 'Signing in...' : 'Sign In'}
-          </button>
-        </div>
+        )}
+
+        {/* Fallback: password login for instructor/admin */}
+        {showPasswordLogin && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Your Name</label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') document.getElementById('pwd-input').focus(); }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
+              <input
+                id="pwd-input"
+                type="password"
+                placeholder="Instructor / Admin password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordSubmit(); }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            <button
+              onClick={handlePasswordSubmit}
+              disabled={busy}
+              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition"
+            >
+              {busy ? 'Signing in...' : 'Sign In'}
+            </button>
+            <div className="text-center">
+              <button
+                onClick={() => { setShowPasswordLogin(false); setError(''); setPassword(''); }}
+                className="text-xs text-slate-500 hover:text-slate-700 underline"
+              >
+                ← Back to Google sign in
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 pt-6 border-t border-slate-200">
           <p className="text-xs text-slate-500 text-center">
-            Students: just enter your name. Instructors & admins: enter your name + password.
+            Students sign in with Google. Instructors & admins use password or Google.
           </p>
         </div>
       </div>
@@ -93,26 +152,14 @@ export default function App() {
   useEffect(() => { saveMeta(meta); }, [meta]);
 
   const handleLogin = (newSession) => setSession(newSession);
+  const handleLogout = () => { clearSession(); setSession(null); };
 
-  const handleLogout = () => {
-    clearSession();
-    setSession(null);
-  };
-
-  if (!session) {
-    return <LoginView onLogin={handleLogin} />;
-  }
+  if (!session) return <LoginView onLogin={handleLogin} />;
 
   return (
     <div>
       {session.role === 'student' && (
-        <StudentView
-          modules={modules}
-          meta={meta}
-          studentName={session.name}
-          setStudentName={() => {}}
-          onLogout={handleLogout}
-        />
+        <StudentView modules={modules} meta={meta} studentName={session.name} onLogout={handleLogout} />
       )}
       {session.role === 'instructor' && (
         <InstructorView modules={modules} onLogout={handleLogout} />
