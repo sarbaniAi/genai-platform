@@ -1,0 +1,11 @@
+{
+  "eyebrow": "Self-Paced or Live · 4 Weeks · Before Main Program",
+  "titleLead": "Understand how GenAI works. Then apply it.",
+  "thesis": "A 4-week bridge to the main \"Working With AI\" program. You'll master LLM architecture, understand hallucinations, write effective prompts, and learn to use GenAI safely in production systems. Built for AWS Cloud Architects and DevOps professionals.",
+  "chips": [
+    "Format · Self-paced or live instructor-led",
+    "Level · Cloud professionals (no AI experience required)",
+    "4 weeks · ~8 hrs/week",
+    "Built on authentic sources + hands-on"
+  ]
+}

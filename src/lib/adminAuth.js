@@ -25,6 +25,7 @@ function setSession(session) {
 export function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch {} }
 export function getCurrentRole() { const s = getSession(); return s ? s.role : null; }
 export function getCurrentName() { const s = getSession(); return s ? s.name : null; }
+export function getCurrentEmail() { const s = getSession(); return s ? s.email : null; }
 export function hasSession() { return getSession() !== null; }
 export function startSession(name, email, role) {
   setSession({ name, email, role, startedAt: new Date().toISOString() });

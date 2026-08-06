@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
-import { LogOut, Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown, Download, Upload, RotateCcw, Users } from 'lucide-react';
-import { exportContent, importContent, resetContent } from '../lib/storage';
+import { useState, useRef, useEffect } from 'react';
+import { LogOut, Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown, Download, Upload, RotateCcw, Users, Cloud, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { exportContent, importContent, resetContent, saveModulesRemote, saveMetaRemote } from '../lib/storage';
+import { isConfigured } from '../lib/githubDb';
 import ModuleEditor from '../components/ModuleEditor';
 
 const blankModule = () => ({
@@ -18,9 +19,35 @@ const blankModule = () => ({
 });
 
 export default function AdminView({ modules, setModules, meta, setMeta, defaultModules, defaultMeta, onLogout, onViewInstructor }) {
-  const [editing, setEditing] = useState(null); // index or 'new' or null
+  const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState(null);
   const fileRef = useRef(null);
+
+  // Publish-to-GitHub status: 'idle' | 'saving' | 'saved' | 'error' | 'offline'
+  const [syncStatus, setSyncStatus] = useState(isConfigured() ? 'idle' : 'offline');
+  const [syncMsg, setSyncMsg] = useState('');
+  const firstRun = useRef(true);
+  const saveTimer = useRef(null);
+
+  // Debounced auto-publish to GitHub whenever modules or meta change.
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }  // skip initial load
+    if (!isConfigured()) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSyncStatus('saving');
+    saveTimer.current = setTimeout(async () => {
+      const [m, mt] = await Promise.all([saveModulesRemote(modules), saveMetaRemote(meta)]);
+      if (m.ok && mt.ok) {
+        setSyncStatus('saved');
+        setSyncMsg('Published to all students');
+        setTimeout(() => setSyncStatus('idle'), 2500);
+      } else {
+        setSyncStatus('error');
+        setSyncMsg((m.reason || mt.reason || 'Publish failed') + ' — changes saved locally only');
+      }
+    }, 1500);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [modules, meta]);
 
   const startNew = () => { setDraft(blankModule()); setEditing('new'); };
   const startEdit = (i) => { setDraft(JSON.parse(JSON.stringify(modules[i]))); setEditing(i); };
@@ -76,7 +103,7 @@ export default function AdminView({ modules, setModules, meta, setMeta, defaultM
         const data = importContent(ev.target.result);
         if (data.modules) setModules(data.modules);
         if (data.meta) setMeta(data.meta);
-        alert('Content imported successfully.');
+        alert('Content imported. It will publish to students shortly.');
       } catch (err) {
         alert('Import failed: ' + err.message);
       }
@@ -86,11 +113,47 @@ export default function AdminView({ modules, setModules, meta, setMeta, defaultM
   };
 
   const handleReset = () => {
-    if (confirm('Reset all content to defaults? Your custom modules will be lost.')) {
+    if (confirm('Reset all content to defaults? Your custom modules will be lost (this also publishes to students).')) {
       resetContent();
       setModules(defaultModules);
       setMeta(defaultMeta);
     }
+  };
+
+  const SyncBadge = () => {
+    if (syncStatus === 'offline') {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-slate-400 border border-slate-200 rounded px-2 py-1" title="GitHub not configured — changes are local only">
+          <Cloud size={12} /> Local only
+        </span>
+      );
+    }
+    if (syncStatus === 'saving') {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-amber-700 border border-amber-200 rounded px-2 py-1 bg-amber-50">
+          <Loader2 size={12} className="animate-spin" /> Publishing...
+        </span>
+      );
+    }
+    if (syncStatus === 'saved') {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-emerald-700 border border-emerald-200 rounded px-2 py-1 bg-emerald-50">
+          <Check size={12} /> {syncMsg}
+        </span>
+      );
+    }
+    if (syncStatus === 'error') {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-red-700 border border-red-200 rounded px-2 py-1 bg-red-50" title={syncMsg}>
+          <AlertCircle size={12} /> Publish failed
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-slate-400 border border-slate-200 rounded px-2 py-1" title="Changes auto-publish to GitHub">
+        <Cloud size={12} /> Auto-publish on
+      </span>
+    );
   };
 
   return (
@@ -103,7 +166,8 @@ export default function AdminView({ modules, setModules, meta, setMeta, defaultM
             </h1>
             <p className="text-sm text-slate-600">Manage GenAI Foundations curriculum</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <SyncBadge />
             <button onClick={handleExport} className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 border border-slate-200 rounded px-2.5 py-1.5 hover:bg-slate-50">
               <Download size={14} /> Export
             </button>

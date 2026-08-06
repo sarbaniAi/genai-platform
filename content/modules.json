@@ -1,0 +1,115 @@
+[
+  {
+    "code": "START",
+    "title": "Starter Resources — Watch These First",
+    "tag": "Three 1-hour talks from Andrej Karpathy covering foundations, deep dive, and practical use.",
+    "time": "3 hours",
+    "learn": "Get a complete mental model from the expert (Karpathy, ex-Tesla AI director). Three complementary perspectives: foundation, technical depth, and hands-on practice.",
+    "do": "Watch in order: Intro → Deep Dive → Practical. Take notes. These replace a textbook.",
+    "objectives": [
+      "Understand LLM architecture, training, and inference from first principles",
+      "See real-world examples of how LLMs succeed and fail",
+      "Learn practical patterns for using LLMs in your own work"
+    ],
+    "checkpoint": "Take 3 key insights from the three videos and write them down. No essay needed—bullets are fine.",
+    "resources": [
+      { "title": "Andrej Karpathy — Intro to Large Language Models", "link": "https://www.youtube.com/watch?v=zjkBMFhNj_g", "time": "1 hr video" },
+      { "title": "Andrej Karpathy — Deep Dive into LLMs like ChatGPT (Latest)", "link": "https://www.youtube.com/watch?v=7xTGNNLPyMI", "time": "1 hr video" },
+      { "title": "Andrej Karpathy — How I use LLMs (Practical)", "link": "https://www.youtube.com/watch?v=EWvNQjAaOHw", "time": "1 hr video" }
+    ],
+    "watchouts": "Watch all three in order. Karpathy's latest video (Deep Dive) covers recent developments. Don't skip—these are the foundation for everything else.",
+    "tools": ["YouTube", "Notebook", "Maybe Claude or ChatGPT to test concepts"]
+  },
+  {
+    "code": "W1",
+    "title": "How LLMs Actually Work",
+    "tag": "Build the mental model that explains both the power and the failures.",
+    "time": "7.5 hours",
+    "learn": "Understand transformers, tokens, attention, and why LLMs hallucinate.",
+    "do": "Read Karpathy's blog and watch 3Blue1Brown; play with the tokenizer; write your first prompt.",
+    "objectives": [
+      "Build a correct mental model of transformers: what is attention, embeddings, and why it works?",
+      "Predict where LLMs will help versus where they'll confidently mislead you.",
+      "Understand the token economy: how tokens relate to cost and context window limits."
+    ],
+    "checkpoint": "Write a 2-paragraph explanation of how attention works. Mention: embeddings, attention mechanism, why it matters.",
+    "resources": [
+      { "title": "Andrej Karpathy — A Recipe for Training Neural Networks (blog)", "link": "http://karpathy.github.io/2019/04/25/recipe/", "time": "20 min read" },
+      { "title": "Hugging Face — What is a Transformer?", "link": "https://huggingface.co/course/en/chapter1/1", "time": "30 min interactive" },
+      { "title": "Jay Alammar — The Illustrated Transformer", "link": "https://jalammar.github.io/illustrated-transformer/", "time": "45 min blog" },
+      { "title": "3Blue1Brown — Attention in Transformers (Chapter 6)", "link": "https://www.3blue1brown.com/lessons/attention/", "time": "26 min video" },
+      { "title": "OpenAI Tokenizer Demo", "link": "https://platform.openai.com/tokenizer", "time": "20 min hands-on" }
+    ],
+    "watchouts": "This feels theoretical, but it's the foundation. Understanding attention explains why verification matters (Week 4).",
+    "tools": ["Claude", "ChatGPT", "LLM tokenizer", "Python"]
+  },
+  {
+    "code": "W2",
+    "title": "Capabilities, Limits & Failure Modes",
+    "tag": "Know what can go wrong and when hallucinations actually matter.",
+    "time": "8 hours",
+    "learn": "Understand hallucinations, scaling laws, in-context learning, and when to trust LLM output.",
+    "do": "Read real incident cases; test a hallucination yourself; build a skepticism checklist.",
+    "objectives": [
+      "Recognize hallucinations and understand why they happen (probability, not retrieval).",
+      "Know when hallucinations are acceptable vs. when they're a blocker.",
+      "Understand in-context learning and why 5-shot prompting beats 1-shot."
+    ],
+    "checkpoint": "List 3 infrastructure scenarios where hallucinations are OK. List 3 where they're NOT OK. Explain the difference.",
+    "resources": [
+      { "title": "OpenAI — Limitations of GPT-4", "link": "https://help.openai.com/en/articles/6783457-limitations-of-gpt-4", "time": "30 min" },
+      { "title": "Mollick — How to Use AI to Do Stuff", "link": "https://www.youtube.com/watch?v=bZQun8Y4L2A", "time": "1 hr video" },
+      { "title": "Logan Kilpatrick — Why Do LLMs Hallucinate?", "link": "https://www.youtube.com/watch?v=Fje9LjNLI9Q", "time": "25 min" },
+      { "title": "AI Incident Database (real failures)", "link": "https://incidentdatabase.ai/", "time": "2 hrs browsing" },
+      { "title": "OWASP — Top 10 for LLM Applications", "link": "https://owasp.org/www-project-top-10-for-large-language-model-applications/", "time": "1.5 hrs" }
+    ],
+    "watchouts": "Bigger models hallucinate less, but they still hallucinate. Confidence is not truth.",
+    "tools": ["Claude", "ChatGPT", "Incident logs"]
+  },
+  {
+    "code": "W3",
+    "title": "Practical Integration — Prompting & APIs",
+    "tag": "Write effective prompts and understand how to integrate LLMs into your workflows.",
+    "time": "8.5 hours",
+    "learn": "Master prompting structure, cost modeling, RAG patterns, and tool calling.",
+    "do": "Write 3 real prompts for your infrastructure work; explore LangChain; estimate costs.",
+    "objectives": [
+      "Write effective technical prompts (with context, constraints, examples).",
+      "Understand LLM API economics: tokens, batch processing, caching, cost optimization.",
+      "Know when to use RAG (retrieval-augmented generation) and how to build it."
+    ],
+    "checkpoint": "Test 3 prompts in Claude or ChatGPT for your actual infrastructure work. Report: did they work? How would you improve?",
+    "resources": [
+      { "title": "Anthropic — Prompt Engineering Guide", "link": "https://docs.anthropic.com/claude/docs/build-with-claude/prompt-engineering/overview", "time": "1 hr" },
+      { "title": "OpenAI — Prompt Engineering Best Practices", "link": "https://platform.openai.com/docs/guides/prompt-engineering", "time": "1.5 hrs" },
+      { "title": "Chip Huyen — LLM Engineering (full guide)", "link": "https://huyenchip.com/2023/04/11/llm-engineering.html", "time": "2 hrs" },
+      { "title": "LangChain — Prompts & Memory", "link": "https://python.langchain.com/docs/modules/model_io/prompts/", "time": "1.5 hrs" },
+      { "title": "LlamaIndex — RAG Deep Dive", "link": "https://docs.llamaindex.ai/en/stable/", "time": "2 hrs" }
+    ],
+    "watchouts": "Good prompts have structure. Vague prompts = vague outputs. Test and iterate.",
+    "tools": ["Claude", "ChatGPT", "LangChain", "Python", "Pinecone"]
+  },
+  {
+    "code": "W4",
+    "title": "Safety, Governance & Capstone",
+    "tag": "Learn to use LLMs responsibly in production and document your first workflow.",
+    "time": "8 hours",
+    "learn": "Build verification checklists, protect secrets, evaluate quality, and design safe workflows.",
+    "do": "Redact a real log; build a verification checklist; submit capstone project.",
+    "objectives": [
+      "Design verification and fallback mechanisms for LLM-assisted infrastructure tasks.",
+      "Keep secrets, PII, and proprietary code out of prompts.",
+      "Understand your org's AI policy and shadow-AI exposure."
+    ],
+    "checkpoint": "Submit a capstone: document one LLM-assisted workflow you'd deploy. Include: the workflow, where LLM helps, your prompt, verification step, one risk, cost estimate.",
+    "resources": [
+      { "title": "Anthropic — Evaluating AI Safety", "link": "https://www.anthropic.com/research/evaluating-ai-safety", "time": "1 hr" },
+      { "title": "OpenAI — Our Approach to AI Safety", "link": "https://openai.com/safety", "time": "1 hr" },
+      { "title": "HashiCorp Vault — Secrets Management", "link": "https://www.vaultproject.io/", "time": "1 hr docs" },
+      { "title": "GitHub Copilot in CI/CD (case study)", "link": "https://github.blog/2023-06-20-how-copilot-for-pull-requests-saves-developers-time/", "time": "30 min" },
+      { "title": "Anthropic Prompt Templates (GitHub)", "link": "https://github.com/anthropics/prompt-templates", "time": "30 min" }
+    ],
+    "watchouts": "This module is the guardrail. Unverified output and leaked secrets are how adoption fails. Treat verification as core engineering.",
+    "tools": ["Org AI policy", "Secrets tooling", "Claude", "ChatGPT", "Vault"]
+  }
+]

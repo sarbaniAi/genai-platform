@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Check, LogOut, RotateCcw } from 'lucide-react';
-import { loadStudentData, saveStudentData } from '../lib/storage';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronUp, Check, LogOut, RotateCcw, Loader2 } from 'lucide-react';
+import { loadStudentDataRemote, saveStudentDataRemote } from '../lib/storage';
 
 const RESOURCE_ICONS = {
   video: '🎬', blog: '📝', interactive: '💻', tool: '🔧', docs: '📖',
@@ -22,20 +22,38 @@ const inferIcon = (title = '') => {
   return '🔗';
 };
 
-export default function StudentView({ modules, meta, studentName, onLogout }) {
+export default function StudentView({ modules, meta, studentName, studentEmail, onLogout }) {
   const [expandedModule, setExpandedModule] = useState(0);
   const [progress, setProgress] = useState({});
   const [submitted, setSubmitted] = useState({});
+  const [syncing, setSyncing] = useState(false);
+  const firstLoad = useRef(true);
+  const saveTimer = useRef(null);
 
+  // Load progress from GitHub on mount (falls back to local cache).
   useEffect(() => {
-    const data = loadStudentData(studentName);
-    setProgress(data.progress || {});
-    setSubmitted(data.submitted || {});
-  }, [studentName]);
+    let cancelled = false;
+    (async () => {
+      const data = await loadStudentDataRemote(studentName, studentEmail);
+      if (!cancelled) {
+        setProgress(data.progress || {});
+        setSubmitted(data.submitted || {});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [studentName, studentEmail]);
 
+  // Debounced auto-save progress to GitHub whenever it changes (skip initial load).
   useEffect(() => {
-    if (studentName) saveStudentData(studentName, { progress, submitted });
-  }, [progress, submitted, studentName]);
+    if (firstLoad.current) { firstLoad.current = false; return; }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSyncing(true);
+    saveTimer.current = setTimeout(async () => {
+      await saveStudentDataRemote(studentName, studentEmail, { progress, submitted });
+      setSyncing(false);
+    }, 1500);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [progress, submitted, studentName, studentEmail]);
 
   const toggleModule = (i) => setExpandedModule(expandedModule === i ? -1 : i);
   const toggleProgress = (code) => setProgress(p => ({ ...p, [code]: !p[code] }));
@@ -64,6 +82,11 @@ export default function StudentView({ modules, meta, studentName, onLogout }) {
             <p className="text-sm text-slate-600">Welcome, {studentName}</p>
           </div>
           <div className="flex items-center gap-3">
+            {syncing && (
+              <span className="flex items-center gap-1 text-xs text-slate-400">
+                <Loader2 size={12} className="animate-spin" /> Saving...
+              </span>
+            )}
             <button onClick={resetProgress} className="flex items-center gap-1 text-slate-500 hover:text-slate-900 text-sm" title="Reset progress">
               <RotateCcw size={16} /> Reset
             </button>

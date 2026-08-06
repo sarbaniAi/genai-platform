@@ -1,24 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { DEFAULT_MODULES, DEFAULT_META } from './data/modules';
-import { loadModules, saveModules, loadMeta, saveMeta } from './lib/storage';
 import {
-  authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession,
+  loadModulesRemote, loadMetaRemote, saveModulesLocal, saveMetaLocal,
+} from './lib/storage';
+import {
+  authenticate, startSession, clearSession, getCurrentRole, getCurrentName, getCurrentEmail, hasSession,
 } from './lib/adminAuth';
 import GoogleSignInButton from './components/GoogleSignInButton';
 import StudentView from './views/StudentView';
 import InstructorView from './views/InstructorView';
 import AdminView from './views/AdminView';
 
-function LoginView({ onLogin }) {
-  const meta = loadMeta(DEFAULT_META);
+function LoginView({ onLogin, meta }) {
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Stable callbacks so GoogleSignInButton (memoized) never re-renders.
   const handleGoogleLogin = useCallback((session) => onLogin(session), [onLogin]);
   const handleGoogleError = useCallback((msg) => setError(msg), []);
 
@@ -103,18 +103,58 @@ function LoginView({ onLogin }) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(() => hasSession() ? { role: getCurrentRole(), name: getCurrentName() } : null);
+  const [session, setSession] = useState(() => hasSession() ? { role: getCurrentRole(), name: getCurrentName(), email: getCurrentEmail() } : null);
   const [adminSubView, setAdminSubView] = useState('admin');
-  const [modules, setModules] = useState(() => loadModules() || DEFAULT_MODULES);
-  const [meta, setMeta] = useState(() => loadMeta(DEFAULT_META));
+  const [modules, setModules] = useState(() => loadModulesLocal() || DEFAULT_MODULES);
+  const [meta, setMeta] = useState(() => loadMetaLocal() || DEFAULT_META);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => { saveModules(modules); }, [modules]);
-  useEffect(() => { saveMeta(meta); }, [meta]);
+  // Async-load content from GitHub on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [m, mt] = await Promise.all([loadModulesRemote(), loadMetaRemote()]);
+        if (cancelled) return;
+        setModules(m.modules);
+        setMeta(mt.meta);
+      } catch (e) {
+        if (!cancelled) setLoadError('Could not load course content. Showing cached version.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const handleLogin = useCallback((newSession) => { setSession(newSession); setAdminSubView('admin'); }, []);
-  const handleLogout = useCallback(() => { clearSession(); setSession(null); setAdminSubView('admin'); }, []);
+  // Keep local cache in sync (so offline refresh still works).
+  useEffect(() => { saveModulesLocal(modules); }, [modules]);
+  useEffect(() => { saveMetaLocal(meta); }, [meta]);
 
-  if (!session) return <LoginView onLogin={handleLogin} />;
+  const handleLogin = useCallback((newSession) => {
+    setSession(newSession);
+    setAdminSubView('admin');
+  }, []);
+  const handleLogout = useCallback(() => {
+    clearSession();
+    setSession(null);
+    setAdminSubView('admin');
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#E8EBEE' }}>
+        <div className="text-center">
+          <Loader2 size={32} className="animate-spin text-violet-600 mx-auto mb-3" />
+          <p className="text-sm text-slate-600">Loading GenAI Foundations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) return <LoginView onLogin={handleLogin} meta={meta} />;
 
   if (session.role === 'admin' && adminSubView === 'instructor') {
     return <InstructorView modules={modules} onLogout={handleLogout} onBackToAdmin={() => setAdminSubView('admin')} />;
@@ -122,8 +162,13 @@ export default function App() {
 
   return (
     <div>
+      {loadError && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-800">
+          {loadError}
+        </div>
+      )}
       {session.role === 'student' && (
-        <StudentView modules={modules} meta={meta} studentName={session.name} onLogout={handleLogout} />
+        <StudentView modules={modules} meta={meta} studentName={session.name} studentEmail={session.email} onLogout={handleLogout} />
       )}
       {session.role === 'instructor' && (
         <InstructorView modules={modules} onLogout={handleLogout} />
