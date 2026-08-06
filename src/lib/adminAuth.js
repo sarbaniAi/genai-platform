@@ -4,14 +4,14 @@
 
 // TODO: Replace these placeholders with your real values.
 // See SETUP-GOOGLE-AUTH.md for how to create a Google OAuth Client ID.
-export const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '983338411144-2rdlrfl467pncud86e4fddm1ql5m03gr.apps.googleusercontent.com';
 
 // Emails authorized for each role. Add your Gmail addresses here.
 export const ADMIN_EMAILS = [
-  'your-admin@gmail.com'
+  'sarbaniiitb2020@gmail.com'
 ];
 export const INSTRUCTOR_EMAILS = [
-  'your-instructor@gmail.com'
+  // Add instructor Gmails here, e.g. 'instructor1@gmail.com'
 ];
 
 // If true, only emails in the allowlists above can sign in (closed cohort).
