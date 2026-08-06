@@ -17,7 +17,7 @@ const blankModule = () => ({
   tools: []
 });
 
-export default function AdminView({ modules, setModules, meta, setMeta, defaultModules, defaultMeta, setCurrentView }) {
+export default function AdminView({ modules, setModules, meta, setMeta, defaultModules, defaultMeta, onLogout }) {
   const [editing, setEditing] = useState(null); // index or 'new' or null
   const [draft, setDraft] = useState(null);
   const fileRef = useRef(null);
@@ -114,7 +114,7 @@ export default function AdminView({ modules, setModules, meta, setMeta, defaultM
             <button onClick={handleReset} className="flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 border border-amber-200 rounded px-2.5 py-1.5 hover:bg-amber-50">
               <RotateCcw size={14} /> Reset
             </button>
-            <button onClick={() => setCurrentView('login')} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
+            <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
               <LogOut size={18} /> Exit
             </button>
           </div>

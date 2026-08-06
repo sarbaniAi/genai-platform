@@ -1,43 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Users, Settings, LogOut, Lock } from 'lucide-react';
 import { DEFAULT_MODULES, DEFAULT_META } from './data/modules';
 import { loadModules, saveModules, loadMeta, saveMeta } from './lib/storage';
-import { isAdminUnlocked, unlockAdmin, lockAdmin } from './lib/adminAuth';
+import { authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession } from './lib/adminAuth';
 import StudentView from './views/StudentView';
 import InstructorView from './views/InstructorView';
 import AdminView from './views/AdminView';
 
-function LoginView({ setCurrentView }) {
+function LoginView({ onLogin }) {
   const meta = loadMeta(DEFAULT_META);
-  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [adminUnlocked, setAdminUnlocked] = useState(isAdminUnlocked());
-  const dotClicks = useRef(0);
-  const dotTimer = useRef(null);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleSecretTrigger = () => {
-    dotClicks.current += 1;
-    if (dotTimer.current) clearTimeout(dotTimer.current);
-    dotTimer.current = setTimeout(() => { dotClicks.current = 0; }, 1500);
-    if (dotClicks.current >= 5) {
-      dotClicks.current = 0;
-      setShowAdminPrompt(true);
-      setAuthError('');
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      setError('Please enter your name.');
+      return;
     }
-  };
-
-  const handlePasswordSubmit = async () => {
-    const ok = await unlockAdmin(passwordInput);
-    if (ok) {
-      setAdminUnlocked(true);
-      setShowAdminPrompt(false);
-      setPasswordInput('');
-      setAuthError('');
-      setCurrentView('admin');
+    setBusy(true);
+    setError('');
+    const result = await authenticate(name, password);
+    setBusy(false);
+    if (result) {
+      startSession(result.name, result.role);
+      onLogin(result);
     } else {
-      setAuthError('Incorrect password.');
-      setPasswordInput('');
+      setError('Authentication failed.');
     }
   };
 
@@ -48,111 +38,86 @@ function LoginView({ setCurrentView }) {
         <h1 className="text-4xl font-bold text-slate-900 mb-2" style={{ fontFamily: '"Bricolage Grotesque", sans-serif', letterSpacing: '-0.025em' }}>
           GenAI Foundations
         </h1>
-        <p className="text-slate-600 mb-8">{meta.thesis}</p>
+        <p className="text-slate-600 mb-6">{meta.thesis}</p>
+
         <div className="space-y-3">
-          <button onClick={() => setCurrentView('student')} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2">
-            <BookOpen size={20} /> Student Login
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Your Name</label>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') document.getElementById('pwd-input').focus(); }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Password <span className="text-slate-400">(students leave blank)</span></label>
+            <input
+              id="pwd-input"
+              type="password"
+              placeholder="Instructors & admins enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
+          {error && <p className="text-red-600 text-xs">{error}</p>}
+          <button
+            onClick={handleSubmit}
+            disabled={busy}
+            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2"
+          >
+            {busy ? 'Signing in...' : 'Sign In'}
           </button>
-          <button onClick={() => setCurrentView('instructor')} className="w-full bg-slate-900 hover:bg-black text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2">
-            <Users size={20} /> Instructor Dashboard
-          </button>
-          {adminUnlocked && (
-            <button onClick={() => setCurrentView('admin')} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2">
-              <Settings size={20} /> Content Admin
-            </button>
-          )}
         </div>
-        <div className="mt-8 pt-8 border-t border-slate-200">
-          <p className="text-xs text-slate-600 text-center">
-            All data stored locally in your browser. No server, no accounts, no fees.
-          </p>
-          <p className="text-center mt-2">
-            <button
-              onClick={handleSecretTrigger}
-              className="text-slate-300 hover:text-slate-400 text-xs cursor-default select-none"
-              aria-hidden="true"
-              tabIndex={-1}
-              style={{ background: 'none', border: 'none', padding: '0 4px' }}
-            >
-              ·
-            </button>
+
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <p className="text-xs text-slate-500 text-center">
+            Students: just enter your name. Instructors & admins: enter your name + password.
           </p>
         </div>
       </div>
-
-      {showAdminPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
-            <div className="flex items-center gap-2 mb-4">
-              <Lock size={20} className="text-teal-600" />
-              <h2 className="text-lg font-bold text-slate-900">Admin Access</h2>
-            </div>
-            <input
-              type="password"
-              autoFocus
-              placeholder="Enter admin password"
-              value={passwordInput}
-              onChange={(e) => { setPasswordInput(e.target.value); setAuthError(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordSubmit(); }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 mb-2"
-            />
-            {authError && <p className="text-red-600 text-xs mb-2">{authError}</p>}
-            <div className="flex justify-end gap-2 mt-3">
-              <button onClick={() => { setShowAdminPrompt(false); setPasswordInput(''); setAuthError(''); }} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-              <button onClick={handlePasswordSubmit} className="px-3 py-1.5 text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg">Unlock</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('login');
-  const [studentName, setStudentName] = useState('');
+  const [session, setSession] = useState(() => hasSession() ? { role: getCurrentRole(), name: getCurrentName() } : null);
   const [modules, setModules] = useState(() => loadModules() || DEFAULT_MODULES);
   const [meta, setMeta] = useState(() => loadMeta(DEFAULT_META));
 
   useEffect(() => { saveModules(modules); }, [modules]);
   useEffect(() => { saveMeta(meta); }, [meta]);
 
-  // If a non-admin tries to access admin view directly, bounce to login.
-  useEffect(() => {
-    if (currentView === 'admin' && !isAdminUnlocked()) {
-      setCurrentView('login');
-    }
-  }, [currentView]);
+  const handleLogin = (newSession) => setSession(newSession);
 
-  const handleSetCurrentView = (view) => {
-    if (view === 'admin' && !isAdminUnlocked()) {
-      setCurrentView('login');
-      return;
-    }
-    setCurrentView(view);
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
   };
 
-  const handleLogoutFromAdmin = () => {
-    lockAdmin();
-    setCurrentView('login');
-  };
+  if (!session) {
+    return <LoginView onLogin={handleLogin} />;
+  }
 
   return (
     <div>
-      {currentView === 'login' && <LoginView setCurrentView={handleSetCurrentView} />}
-      {currentView === 'student' && (
+      {session.role === 'student' && (
         <StudentView
           modules={modules}
           meta={meta}
-          studentName={studentName}
-          setStudentName={setStudentName}
-          setCurrentView={handleSetCurrentView}
+          studentName={session.name}
+          setStudentName={() => {}}
+          onLogout={handleLogout}
         />
       )}
-      {currentView === 'instructor' && (
-        <InstructorView modules={modules} setCurrentView={handleSetCurrentView} />
+      {session.role === 'instructor' && (
+        <InstructorView modules={modules} onLogout={handleLogout} />
       )}
-      {currentView === 'admin' && isAdminUnlocked() && (
+      {session.role === 'admin' && (
         <AdminView
           modules={modules}
           setModules={setModules}
@@ -160,7 +125,7 @@ export default function App() {
           setMeta={setMeta}
           defaultModules={DEFAULT_MODULES}
           defaultMeta={DEFAULT_META}
-          setCurrentView={handleSetCurrentView}
+          onLogout={handleLogout}
         />
       )}
     </div>

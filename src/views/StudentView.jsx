@@ -22,7 +22,7 @@ const inferIcon = (title = '') => {
   return '🔗';
 };
 
-export default function StudentView({ modules, meta, studentName, setStudentName, setCurrentView }) {
+export default function StudentView({ modules, meta, studentName, onLogout }) {
   const [expandedModule, setExpandedModule] = useState(0);
   const [progress, setProgress] = useState({});
   const [submitted, setSubmitted] = useState({});
@@ -53,37 +53,6 @@ export default function StudentView({ modules, meta, studentName, setStudentName
   const completedCount = Object.values(progress).filter(Boolean).length;
   const completionPercent = modules.length ? Math.round((completedCount / modules.length) * 100) : 0;
 
-  if (!studentName) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #f4f0fb 0%, #e8ebee 50%, #ddf0f1 100%)' }}>
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
-          <p className="font-mono text-xs tracking-widest uppercase text-slate-500 mb-2">{meta?.eyebrow}</p>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2" style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}>
-            GenAI Foundations
-          </h1>
-          <p className="text-slate-600 mb-8">Interactive Learning Platform</p>
-          <input
-            type="text"
-            placeholder="Enter your name"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 mb-3"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && e.target.value.trim()) setStudentName(e.target.value.trim());
-            }}
-          />
-          <button
-            onClick={(e) => {
-              const input = e.target.parentElement.querySelector('input');
-              if (input.value.trim()) setStudentName(input.value.trim());
-            }}
-            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 rounded-lg transition"
-          >
-            Enter Learning Platform
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen" style={{ background: '#E8EBEE' }}>
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -98,7 +67,7 @@ export default function StudentView({ modules, meta, studentName, setStudentName
             <button onClick={resetProgress} className="flex items-center gap-1 text-slate-500 hover:text-slate-900 text-sm" title="Reset progress">
               <RotateCcw size={16} /> Reset
             </button>
-            <button onClick={() => { setStudentName(''); setCurrentView('login'); }} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
+            <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
               <LogOut size={18} /> Logout
             </button>
           </div>

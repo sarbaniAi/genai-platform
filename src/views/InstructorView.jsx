@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { LogOut, Users, Award, FileText } from 'lucide-react';
 import { listStudents, loadStudentData } from '../lib/storage';
 
-export default function InstructorView({ modules, setCurrentView }) {
+export default function InstructorView({ modules, onLogout }) {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function InstructorView({ modules, setCurrentView }) {
             </h1>
             <p className="text-sm text-slate-600">GenAI Foundations Cohort</p>
           </div>
-          <button onClick={() => setCurrentView('login')} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
+          <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
             <LogOut size={18} /> Logout
           </button>
         </div>
