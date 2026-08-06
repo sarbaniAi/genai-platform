@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { BookOpen, Users, Settings, LogOut, Lock, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Users, Settings, LogOut, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { DEFAULT_MODULES, DEFAULT_META } from './data/modules';
 import { loadModules, saveModules, loadMeta, saveMeta } from './lib/storage';
 import {
   authenticate, startSession, clearSession, getCurrentRole, getCurrentName, hasSession,
-  initGoogleButton, GOOGLE_CLIENT_ID,
+  initGoogleButton,
 } from './lib/adminAuth';
 import StudentView from './views/StudentView';
 import InstructorView from './views/InstructorView';
@@ -18,10 +18,8 @@ function LoginView({ onLogin }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [googleConfigured, setGoogleConfigured] = useState(false);
-  const googleBtnRef = useRef(null);
 
   useEffect(() => {
-    // Render the Google button once on mount.
     const ok = initGoogleButton(
       'google-signin-btn',
       (session) => onLogin(session),
@@ -31,16 +29,9 @@ function LoginView({ onLogin }) {
   }, [onLogin]);
 
   const handlePasswordSubmit = async () => {
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
-    if (!password) {
-      setError('Password is required for instructor/admin login.');
-      return;
-    }
-    setBusy(true);
-    setError('');
+    if (!name.trim()) { setError('Please enter your name.'); return; }
+    if (!password) { setError('Password is required for instructor/admin login.'); return; }
+    setBusy(true); setError('');
     const result = await authenticate(name, password);
     setBusy(false);
     if (result) {
@@ -67,7 +58,6 @@ function LoginView({ onLogin }) {
           </div>
         )}
 
-        {/* Primary: Sign in with Google */}
         {!showPasswordLogin && (
           <div className="space-y-4">
             <div id="google-signin-btn" className="flex justify-center min-h-[40px]">
@@ -79,54 +69,36 @@ function LoginView({ onLogin }) {
               )}
             </div>
             <div className="text-center">
-              <button
-                onClick={() => setShowPasswordLogin(true)}
-                className="text-xs text-slate-500 hover:text-slate-700 underline"
-              >
+              <button onClick={() => setShowPasswordLogin(true)} className="text-xs text-slate-500 hover:text-slate-700 underline">
                 Instructor / Admin? Use password instead
               </button>
             </div>
           </div>
         )}
 
-        {/* Fallback: password login for instructor/admin */}
         {showPasswordLogin && (
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Your Name</label>
-              <input
-                type="text"
-                placeholder="Enter your name"
-                value={name}
+              <input type="text" placeholder="Enter your name" value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') document.getElementById('pwd-input').focus(); }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
-              <input
-                id="pwd-input"
-                type="password"
-                placeholder="Instructor / Admin password"
-                value={password}
+              <input id="pwd-input" type="password" placeholder="Instructor / Admin password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordSubmit(); }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
-            <button
-              onClick={handlePasswordSubmit}
-              disabled={busy}
-              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition"
-            >
+            <button onClick={handlePasswordSubmit} disabled={busy}
+              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition">
               {busy ? 'Signing in...' : 'Sign In'}
             </button>
             <div className="text-center">
-              <button
-                onClick={() => { setShowPasswordLogin(false); setError(''); setPassword(''); }}
-                className="text-xs text-slate-500 hover:text-slate-700 underline"
-              >
+              <button onClick={() => { setShowPasswordLogin(false); setError(''); setPassword(''); }}
+                className="text-xs text-slate-500 hover:text-slate-700 underline">
                 ← Back to Google sign in
               </button>
             </div>
@@ -145,16 +117,30 @@ function LoginView({ onLogin }) {
 
 export default function App() {
   const [session, setSession] = useState(() => hasSession() ? { role: getCurrentRole(), name: getCurrentName() } : null);
+  const [adminSubView, setAdminSubView] = useState('admin'); // 'admin' | 'instructor'
   const [modules, setModules] = useState(() => loadModules() || DEFAULT_MODULES);
   const [meta, setMeta] = useState(() => loadMeta(DEFAULT_META));
 
   useEffect(() => { saveModules(modules); }, [modules]);
   useEffect(() => { saveMeta(meta); }, [meta]);
 
-  const handleLogin = (newSession) => setSession(newSession);
-  const handleLogout = () => { clearSession(); setSession(null); };
+  const handleLogin = (newSession) => { setSession(newSession); setAdminSubView('admin'); };
+  const handleLogout = () => { clearSession(); setSession(null); setAdminSubView('admin'); };
 
   if (!session) return <LoginView onLogin={handleLogin} />;
+
+  // Admin can switch to view the instructor dashboard.
+  if (session.role === 'admin' && adminSubView === 'instructor') {
+    return (
+      <div>
+        <InstructorView
+          modules={modules}
+          onLogout={handleLogout}
+          onBackToAdmin={() => setAdminSubView('admin')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -173,6 +159,7 @@ export default function App() {
           defaultModules={DEFAULT_MODULES}
           defaultMeta={DEFAULT_META}
           onLogout={handleLogout}
+          onViewInstructor={() => setAdminSubView('instructor')}
         />
       )}
     </div>

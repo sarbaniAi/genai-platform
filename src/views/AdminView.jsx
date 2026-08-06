@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { LogOut, Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown, Download, Upload, RotateCcw } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown, Download, Upload, RotateCcw, Users } from 'lucide-react';
 import { exportContent, importContent, resetContent } from '../lib/storage';
 import ModuleEditor from '../components/ModuleEditor';
 
@@ -17,7 +17,7 @@ const blankModule = () => ({
   tools: []
 });
 
-export default function AdminView({ modules, setModules, meta, setMeta, defaultModules, defaultMeta, onLogout }) {
+export default function AdminView({ modules, setModules, meta, setMeta, defaultModules, defaultMeta, onLogout, onViewInstructor }) {
   const [editing, setEditing] = useState(null); // index or 'new' or null
   const [draft, setDraft] = useState(null);
   const fileRef = useRef(null);
@@ -113,6 +113,9 @@ export default function AdminView({ modules, setModules, meta, setMeta, defaultM
             <input ref={fileRef} type="file" accept="application/json" onChange={handleImport} className="hidden" />
             <button onClick={handleReset} className="flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 border border-amber-200 rounded px-2.5 py-1.5 hover:bg-amber-50">
               <RotateCcw size={14} /> Reset
+            </button>
+            <button onClick={onViewInstructor} className="flex items-center gap-1 text-sm text-teal-700 hover:text-teal-900 border border-teal-200 rounded px-2.5 py-1.5 hover:bg-teal-50">
+              <Users size={14} /> Instructor Dashboard
             </button>
             <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
               <LogOut size={18} /> Exit

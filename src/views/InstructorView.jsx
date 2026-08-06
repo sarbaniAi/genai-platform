@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { LogOut, Users, Award, FileText } from 'lucide-react';
+import { LogOut, Users, Award, FileText, ArrowLeft } from 'lucide-react';
 import { listStudents, loadStudentData } from '../lib/storage';
 
-export default function InstructorView({ modules, onLogout }) {
+export default function InstructorView({ modules, onLogout, onBackToAdmin }) {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
@@ -30,9 +30,16 @@ export default function InstructorView({ modules, onLogout }) {
             </h1>
             <p className="text-sm text-slate-600">GenAI Foundations Cohort</p>
           </div>
-          <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
-            <LogOut size={18} /> Logout
-          </button>
+          <div className="flex items-center gap-3">
+            {onBackToAdmin && (
+              <button onClick={onBackToAdmin} className="flex items-center gap-1 text-sm text-teal-700 hover:text-teal-900 border border-teal-200 rounded px-2.5 py-1.5 hover:bg-teal-50">
+                <ArrowLeft size={14} /> Back to Admin
+              </button>
+            )}
+            <button onClick={onLogout} className="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm">
+              <LogOut size={18} /> Logout
+            </button>
+          </div>
         </div>
       </header>
 

@@ -11,7 +11,7 @@ export const ADMIN_EMAILS = [
   'sarbaniiitb2020@gmail.com'
 ];
 export const INSTRUCTOR_EMAILS = [
-  // Add instructor Gmails here, e.g. 'instructor1@gmail.com'
+  'sarbaniiitb2020@gmail.com'
 ];
 
 // If true, only emails in the allowlists above can sign in (closed cohort).
